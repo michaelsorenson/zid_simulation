@@ -10,7 +10,7 @@ import subprocess as sp
 import time
 
 PATH_TO_SHAH = '../SMoPT'
-def run_sim(output_path, sim_time=1500, equil_time=1000, harr_add_time=1500, cyclo_add_time=1500,
+def run_sim(output_path, linux, sim_time=1500, equil_time=1000, harr_add_time=1500, cyclo_add_time=1500,
              num_rib=200000, num_trna=3300000, num_genes=4839, cyclo_prob=0, cyclo_dissoc_rate=0, harr_rate=0,
              random_seed=1, input_genom_path=f'{PATH_TO_SHAH}/example/input/S.cer.flash-freeze.genom',
              input_trna_path=f'{PATH_TO_SHAH}/example/input/S.cer.tRNA', outputs=[1], logging=False):
@@ -19,6 +19,7 @@ def run_sim(output_path, sim_time=1500, equil_time=1000, harr_add_time=1500, cyc
     Shah simulation parameters shown in parantheses next to variable descriptions
     
     :param output_path: Path to directory to save output files to
+    :param linux: Boolean to indicate whether system is linux-based
     :param sim_time: (-Tt) Total simulation time in seconds
     :param equil_time: (-Tb) Burn-in/threshold time. Time spent by the cell to reach equilibrium.
     :param harr_add_time: (-Th) Time at which harringtonine is added to the cell
@@ -32,24 +33,27 @@ def run_sim(output_path, sim_time=1500, equil_time=1000, harr_add_time=1500, cyc
     :param random_seed: (-s) Random number seed
     
     """
-    
+    sim_path = PATH_TO_SHAH + '/bin/SMoPT_v2'
+    if linux:
+        sim_path += '_linux'
     # Create output directory
     if not os.path.exists(output_path):
         os.mkdir(output_path)
     
     # Create output prefix using -x1, -x2, -y values
     output_name = f'cp{float(cyclo_prob)}_cdr{float(cyclo_dissoc_rate)}_hr{float(harr_rate)}'
+    full_path = output_path + output_name + '/'
     
     # Make subdirectory inside output directory for current values
-    if not os.path.exists(output_path + output_name + '/'):
-        os.mkdir(output_path + output_name + '/')
+    if not os.path.exists(full_path):
+        os.mkdir(full_path)
     
     # Create command
-    cmd = shlex.split(f'{PATH_TO_SHAH}/bin/SMoPT_v2 -Tt {sim_time} -Tb {equil_time} -Th {harr_add_time}\
+    cmd = shlex.split(f'{sim_path} -Tt {sim_time} -Tb {equil_time} -Th {harr_add_time}\
                         -Tc {cyclo_add_time} -R {num_rib} -t {num_trna} -N {num_genes}\
                         -F {input_genom_path} -C {input_trna_path} -x1 {cyclo_prob}\
                         -x2 {cyclo_dissoc_rate} -y {harr_rate} -s {random_seed}\
-                        -O {output_path}{output_name}/{output_name} '\
+                        -O {full_path}{output_name} '\
                         + ' '.join([f'-p{i}' for i in outputs]))
     
     # Run simulation, wait for it to finish
@@ -67,4 +71,4 @@ def run_sim(output_path, sim_time=1500, equil_time=1000, harr_add_time=1500, cyc
         print('Done')
     
     # Return list of saved output files 
-    return [output_path + outfile for outfile in os.listdir(output_path + output_name + '/')]
+    return [full_path + outfile for outfile in os.listdir(full_path)]
